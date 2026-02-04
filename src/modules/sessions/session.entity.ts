@@ -3,22 +3,25 @@ import {
   PrimaryGeneratedColumn,
   Column,
   OneToMany,
+  Index,
+  Unique,
 } from 'typeorm';
 import { Seat } from '../seats/seat.entity';
 
 @Entity('sessions')
+@Unique('UQ_session_movie_time_room', ['movieTitle', 'startsAt', 'roomId'])
 export class Session {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column()
-  movie: string;
+  movieTitle: string;
 
   @Column({ type: 'timestamp' })
   startsAt: Date;
 
   @Column()
-  room: string;
+  roomId: string;
 
   @Column({ type: 'decimal', precision: 10, scale: 2 })
   price: number;
