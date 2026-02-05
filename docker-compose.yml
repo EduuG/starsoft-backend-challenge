@@ -10,14 +10,16 @@ services:
       - postgres
       - redis
       - rabbitmq
+    volumes:
+      - .:/app
 
   postgres:
     image: postgres:16
     container_name: cinema_postgres
     environment:
-      POSTGRES_DB: cinema
-      POSTGRES_USER: cinema
-      POSTGRES_PASSWORD: cinema
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
     ports:
       - "5432:5432"
     volumes:
