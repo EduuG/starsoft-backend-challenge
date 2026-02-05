@@ -1,11 +1,12 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  ManyToMany,
-  JoinTable,
-} from 'typeorm';
-import { Seat } from '../seats/seat.entity';
+import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Session } from "../sessions/session.entity";
+import { ReservationSeat } from "./reservation-seat.entity";
+
+export enum ReservationStatus {
+  ACTIVE = 'ACTIVE',
+  EXPIRED = 'EXPIRED',
+  CONFIRMED = 'CONFIRMED',
+}
 
 @Entity('reservations')
 export class Reservation {
@@ -15,12 +16,23 @@ export class Reservation {
   @Column()
   userId: string;
 
+  @ManyToOne(() => Session)
+  session: Session;
+
+  @OneToMany(
+    () => ReservationSeat,
+    reservationSeat => reservationSeat.reservation,
+  )
+  
+  reservationSeats: ReservationSeat[];
+
   @Column({ type: 'timestamp' })
   expiresAt: Date;
 
-  @ManyToMany(() => Seat)
-  @JoinTable({
-    name: 'reservation_seats',
+  @Column({
+    type: 'enum',
+    enum: ReservationStatus,
+    default: ReservationStatus.ACTIVE,
   })
-  seats: Seat[];
+  status: ReservationStatus;
 }
