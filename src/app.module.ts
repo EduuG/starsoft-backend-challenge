@@ -7,6 +7,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { typeOrmConfig } from './infra/database/typeorm.config';
 import { SessionsModule } from './modules/sessions/sessions.module';
 import { ReservationsModule } from './modules/reservations/reservations.module';
+import { SalesModule } from './modules/sales/sales.module';
 import { MessagingModule } from './infra/messaging/messaging.module';
 import { RedisModule } from './infra/redis/redis.module';
 
@@ -18,6 +19,7 @@ import { RedisModule } from './infra/redis/redis.module';
     MessagingModule,
     SessionsModule,
     ReservationsModule,
+    SalesModule,
   ],
   controllers: [AppController, HealthController],
   providers: [AppService],
