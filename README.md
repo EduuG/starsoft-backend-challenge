@@ -1,98 +1,124 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Cinema Ticket Reservation System
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Sistema de venda de ingressos de cinema que evita que o mesmo assento seja vendido para duas pessoas ao mesmo tempo.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## O que o sistema faz
 
-## Description
+O principal desafio era garantir que quando várias pessoas tentam comprar o mesmo assento simultaneamente, apenas uma consegue. Isso foi solucionado utilizando locks no Redis e transações no banco de dados.
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+**Funcionalidades:**
+- Criar sessões de cinema com assentos
+- Reservar assentos (válido por 30 segundos)
+- Confirmar pagamento
+- Expiração automática caso o pagamento não seja efetuado
+- Ver disponibilidade em tempo real
 
-## Project setup
+## Tecnologias utilizadas
 
-```bash
-$ npm install
-```
+- **NestJS**: Escolhi porque tem suporte nativo a microserviços e boa estrutura modular, o que facilita organizar o código em controllers, services e módulos separados.
 
-## Compile and run the project
+- **PostgreSQL**: Precisava de um banco com transações confiáveis e suporte a locks. O Postgres permite bloquear linhas durante uma transação para evitar que dois processos modifiquem os mesmos assentos.
+
+- **Redis**: Usei para fazer locks distribuídos porque é muito mais rápido que o banco de dados (trabalha em memória). Também uso para cachear os resultados de requisições com idempotency key.
+
+- **RabbitMQ**: Precisava garantir que eventos importantes (reserva criada, pagamento confirmado) não se perdessem. O RabbitMQ tem suporte a confirmação manual, então em caso de erro posso reprocessar a mensagem.
+
+- **Docker**: Para garantir que o projeto execute em qualquer máquina.
+
+## Como executar
+
+É necessário ter o Docker e Docker Composer instalados.
 
 ```bash
-# development
-$ npm run start
+# Clone o projeto
+git clone <repo-url>
+cd starsoft-backend-challenge
 
-# watch mode
-$ npm run start:dev
+# Copie o .env.example
+cp .env.example .env
 
-# production mode
-$ npm run start:prod
+# Execute o projeto
+docker-compose up -d
+
+# Ver logs
+docker-compose logs -f app
 ```
 
-## Run tests
+API: `http://localhost:3000`  
+Documentação: `http://localhost:3000/api-docs`
+
+## Testando
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+# Rodar testes e2e
+npm run test:e2e
 ```
 
-## Deployment
+## Como solucionei os desafios propostos
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+### Evitar venda dupla do mesmo assento
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+Implementei um sistema de locks distribuídos usando Redis. Antes de processar uma reserva, o sistema tenta adquirir um lock exclusivo para os assentos solicitados. Apenas uma requisição consegue obter o lock por vez, garantindo que as verificações e modificações no banco de dados sejam atômicas.
 
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+```typescript
+const lockKey = `lock:session:${sessionId}:seats:${seatNumbers.sort().join(',')}`;
+const locked = await this.redis.acquireLock(lockKey, 30_000);
+
+if (!locked) {
+  throw new ConflictException('Assentos em disputa. Tente novamente.');
+}
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+O lock tem duração de 30 segundos e é liberado automaticamente após a conclusão da operação, evitando que recursos fiquem travados indefinidamente.
 
-## Resources
+### Evitar deadlock
 
-Check out a few resources that may come in handy when working with NestJS:
+Em caso de duas pessoas tentarem reservar assentos em ordens diferentes ([1,3] vs [3,1]), pode ocorrer um deadlock. A solução foi simples: ordenar os números antes de criar a chave do lock. Assim todo mundo pede na mesma ordem.
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+### Expirações automáticas
 
-## Support
+Desenvolvi um serviço que, a cada 10 segundos, é executado e verifica as reservas que expiraram. Em caso afirmativo, o assento é liberado novamente.
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+### Idempotência
 
-## Stay in touch
+Adicionei suporte para um header `Idempotency-Key`. Em uma situação onde cliente envia a mesma requisição duas vezes (como por timeout), é retornado o resultado anterior ao invés de processar novamente.
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+## API Endpoints
 
-## License
+A documentação completa está disponível no Swagger (`/api-docs`), mas resumindo:
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+- `POST /sessions` - Criar nova sessão
+- `GET /sessions` - Listar sessões  
+- `GET /sessions/:id/seats` - Lista assentos disponíveis
+- `POST /reservations` - Reservar assentos
+- `POST /sales/confirm-payment` - Confirmar pagamento
+- `GET /sales/users/:userId` - Listar compras de um usuário
+
+## Decisões que tomei
+
+**Por que Redis e Postgres juntos?**
+
+Postgres é ótimo para guardar dados de forma permanente e tem transações, mas Redis é muito mais rápido para locks temporários porque trabalha em memória. Usei cada um para o que faz melhor.
+
+**Por que RabbitMQ e não Kafka?**
+
+RabbitMQ é mais simples de configurar e para o volume de mensagens deste projeto atende perfeitamente. Kafka seria necessário para volumes muito maiores ou se precisasse guardar histórico de eventos por mais tempo.
+
+## O que ficou faltando
+
+- Não implementei autenticação de verdade (userId é só uma string)
+- Não tem Dead Letter Queue para mensagens com erro
+- Idempotência só funciona em alguns endpoints
+- Não tem rate limiting
+- Poderia ter mais testes
+
+## O que eu faria com mais tempo
+
+- Adicionar autenticação JWT
+- Melhorar o tratamento de erros
+- Adicionar mais testes
+- Documentar melhor o código
+- Monitoramento (logs melhores)
+
+
+Desenvolvido por Eduardo Guimarães.
