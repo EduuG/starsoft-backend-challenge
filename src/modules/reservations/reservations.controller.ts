@@ -1,7 +1,9 @@
 import { Controller, Post, Body, Headers, ConflictException } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiHeader } from '@nestjs/swagger';
 import { ReservationsService } from './reservations.service';
 import { CreateReservationDto } from './dto/create-reservation.dto';
 
+@ApiTags('reservations')
 @Controller('reservations')
 export class ReservationsController {
   constructor(

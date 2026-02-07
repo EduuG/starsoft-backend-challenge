@@ -1,7 +1,9 @@
 import { Controller, Post, Body, Get, Param, BadRequestException, Headers } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiHeader } from '@nestjs/swagger';
 import { SalesService } from './sales.service';
 import { ConfirmPaymentDto } from './dto/confirm-payment.dto';
 
+@ApiTags('sales')
 @Controller('sales')
 export class SalesController {
   constructor(private readonly salesService: SalesService) {}
