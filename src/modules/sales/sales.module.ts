@@ -7,11 +7,13 @@ import { Reservation } from '../reservations/reservation.entity';
 import { Seat } from '../seats/seat.entity';
 import { Session } from '../sessions/session.entity';
 import { MessagingModule } from '../../infra/messaging/messaging.module';
+import { RedisModule } from '../../infra/redis/redis.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Sale, Reservation, Seat, Session]),
     MessagingModule,
+    RedisModule,
   ],
   controllers: [SalesController],
   providers: [SalesService],

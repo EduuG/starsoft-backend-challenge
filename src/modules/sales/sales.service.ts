@@ -5,6 +5,8 @@ import { Sale } from './sale.entity';
 import { Reservation, ReservationStatus } from '../reservations/reservation.entity';
 import { Seat, SeatStatus } from '../seats/seat.entity';
 import { RabbitMQService } from '../../infra/messaging/rabbitmq.service';
+import { RedisService } from '../../infra/redis/redis.service';
+
 @Injectable()
 export class SalesService {
   private readonly logger = new Logger(SalesService.name);
@@ -21,7 +23,16 @@ export class SalesService {
 
     private readonly dataSource: DataSource,
     private readonly rabbit: RabbitMQService,
+    private readonly redis: RedisService,
   ) {}
+
+  async checkIdempotency(key: string) {
+    return this.redis.getIdempotencyResult(key);
+  }
+
+  async storeIdempotency(key: string, result: any) {
+    await this.redis.storeIdempotencyResult(key, result);
+  }
 
   // Confirms payment and creates a sale.
   async confirmPayment(

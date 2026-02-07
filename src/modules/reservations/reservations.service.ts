@@ -15,6 +15,14 @@ export class ReservationsService {
     private readonly rabbit: RabbitMQService,
   ) {}
 
+  async checkIdempotency(key: string) {
+    return this.redis.getIdempotencyResult(key);
+  }
+
+  async storeIdempotency(key: string, result: any) {
+    await this.redis.storeIdempotencyResult(key, result);
+  }
+
 async createReservation(sessionId: string, seatNumbers: number[], userId: string) {
   const lockKey = `lock:session:${sessionId}:seats:${seatNumbers.sort().join(',')}`;
   const locked = await this.redis.acquireLock(lockKey, 30_000);

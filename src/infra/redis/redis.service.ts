@@ -72,6 +72,16 @@ export class RedisService
     return this.client.set(key, value);
   }
 
+  // Store idempotency key result for 24 hours
+  async storeIdempotencyResult(key: string, result: any): Promise<void> {
+    await this.setWithTTL(`idempotency:${key}`, result, 86400);
+  }
+
+  // Check if idempotency key was already processed
+  async getIdempotencyResult<T>(key: string): Promise<T | null> {
+    return this.get<T>(`idempotency:${key}`);
+  }
+
   async onModuleDestroy() {
     await this.client.disconnect();
   }
