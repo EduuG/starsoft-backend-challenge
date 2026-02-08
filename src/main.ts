@@ -39,6 +39,10 @@ async function bootstrap() {
       queueOptions: {
         durable: true,
       },
+      socketOptions: {
+        heartbeatIntervalInSeconds: 60,
+        reconnectTimeInSeconds: 5,
+      },
     },
   });
 

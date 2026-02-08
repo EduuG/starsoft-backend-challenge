@@ -12,6 +12,10 @@ import { RabbitMQService } from './rabbitmq.service';
         options: {
           urls: [process.env.RABBITMQ_URL as string],
           queue: 'ticket_queue',
+          socketOptions: {
+            heartbeatIntervalInSeconds: 60,
+            reconnectTimeInSeconds: 5,
+          },
         },
       },
     ]),
