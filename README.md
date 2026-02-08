@@ -56,7 +56,7 @@ RabbitMQ Management: `http://localhost:15672` (user: guest, password: guest)
 
 ```bash
 # Rodar testes e2e
-docker-compose --profile test up test
+docker compose run --rm test
 ```
 
 Os testes e2e validam:
@@ -64,7 +64,7 @@ Os testes e2e validam:
 - Reserva de assentos
 - Confirmação de pagamento
 - Expiração de reservas
-- Concorrência (venda dupla)
+- Concorrência (venda dupla e prevenção de deadlock)
 
 
 ## Como solucionei os desafios propostos
