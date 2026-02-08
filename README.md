@@ -27,32 +27,45 @@ O principal desafio era garantir que quando várias pessoas tentam comprar o mes
 
 ## Como executar
 
-É necessário ter o Docker e Docker Composer instalados.
+É necessário ter o Docker e Docker Compose instalados.
 
 ```bash
 # Clone o projeto
-git clone <repo-url>
+git clone https://github.com/EduuG/starsoft-backend-challenge.git
 cd starsoft-backend-challenge
 
-# Copie o .env.example
+# Copie o .env.example para .env
 cp .env.example .env
 
-# Execute o projeto
+# Suba todos os serviços
 docker-compose up -d
 
-# Ver logs
-docker-compose logs -f app
+# Aguarde alguns segundos para os serviços iniciarem
+# Verifique se está tudo rodando
+docker-compose ps
+
+# Ver logs da aplicação
+docker-compose logs -f api
 ```
 
 API: `http://localhost:3000`  
-Documentação: `http://localhost:3000/api-docs`
+Documentação Swagger: `http://localhost:3000/api-docs`  
+RabbitMQ Management: `http://localhost:15672` (user: guest, password: guest)
 
 ## Testando
 
 ```bash
 # Rodar testes e2e
-npm run test:e2e
+docker-compose --profile test up test
 ```
+
+Os testes e2e validam:
+- Criação de sessões
+- Reserva de assentos
+- Confirmação de pagamento
+- Expiração de reservas
+- Concorrência (venda dupla)
+
 
 ## Como solucionei os desafios propostos
 

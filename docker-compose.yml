@@ -53,5 +53,23 @@ services:
       retries: 5
       start_period: 30s
 
+  test:
+    build: .
+    container_name: cinema_test
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=test
+    depends_on:
+      postgres:
+        condition: service_started
+      redis:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+    command: ["npm", "run", "test:e2e"]
+    profiles:
+      - test
+
 volumes:
   postgres_data:
